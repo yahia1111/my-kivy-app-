@@ -31,13 +31,18 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Auto-Accept All Android Licenses (الحل القاطع للمشكلة)
+      - name: Auto-Accept All Android Licenses
         run: |
           mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
           mkdir -p $ANDROID_HOME/licenses
-          # الموافقة على جميع تراخيص قوقل الحالية والمستقبلية بالسيرفر والبلدوزر
           yes | sdkmanager --licenses || true
           cp -r $ANDROID_HOME/licenses/* ~/.buildozer/android/platform/android-sdk/licenses/ || true
+
+      - name: Fix Sdkmanager Path for Buildozer (حل مشكلة المسار المفقود)
+        run: |
+          # إنشاء المجلد القديم الذي يبحث عنه بيلدوزر وربطه بالأداة الحديثة
+          mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
+          ln -s $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager || true
 
       - name: Install Buildozer and Cython
         run: |
