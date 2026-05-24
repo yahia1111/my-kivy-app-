@@ -10,11 +10,12 @@ orientation = portrait
 fullscreen = 0
 android.api = 33
 android.minapi = 21
-android.ndk_api = 21
 android.ndk = 25b
+android.ndk_api = 21
 android.private_storage = True
 android.permissions = READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, INTERNET
 android.archs = armeabi-v7a, arm64-v8a
+android.accept_sdk_license = True
 p4a.branch = master
 
 [buildozer]
