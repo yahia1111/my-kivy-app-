@@ -31,18 +31,8 @@ jobs:
           pip install --upgrade pip
           pip install "cython<3.0" buildozer virtualenv
 
-      - name: Build Android APK (الدمج القاطع للمسارات)
+      - name: Build Android APK
         run: |
-          # إجبار بيلدوزر على استخدام الـ SDK والـ NDK المدمجين بالسيرفر واللذان لا يخطئان أبداً
-          mkdir -p ~/.buildozer/android/platform
-          ln -s $ANDROID_HOME ~/.buildozer/android/platform/android-sdk || true
-          
-          # إجبار بيلدوزر على قبول التراخيص محلياً وسحابياً
-          mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          cp -r $ANDROID_HOME/licenses/* ~/.buildozer/android/platform/android-sdk/licenses/ || true
-          
-          # تشغيل البناء النهائي المستقر
           buildozer -v android debug
 
       - name: Upload APK Artifact
