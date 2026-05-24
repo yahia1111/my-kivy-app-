@@ -26,6 +26,16 @@ jobs:
         pip install --upgrade pip
         pip install "cython<3.0" buildozer virtualenv
 
+    - name: Pre-install Android SDK Tools and Layout
+      run: |
+        mkdir -p ~/.buildozer/android/platform/android-sdk/cmdline-tools
+        cd ~/.buildozer/android/platform/android-sdk/cmdline-tools
+        wget https://google.com -O tools.zip
+        unzip -q tools.zip && rm tools.zip
+        mv cmdline-tools latest
+        mkdir -p ../tools/bin
+        ln -s ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager ../tools/bin/sdkmanager
+
     - name: Auto-Accept Android SDK Licenses
       run: |
         mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
