@@ -1,48 +1,48 @@
-import os
-from kivy.app import App
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
-from kivy.core.audio import SoundLoader
-from kivy.utils import platform
+name: Build Android APK
+on:
+  push:
+  workflow_dispatch:
 
-class MyGameApp(App):
-    def build(self):
-        # شاشة رئيسية مبسطة تحتوي على زر تشغيل الصوت كمثال
-        layout = BoxLayout(orientation='vertical', padding=20, spacing=20)
-        
-        btn_play = Button(text="تشغيل الموسيقى", size_hint=(1, 0.2))
-        btn_play.bind(on_press=self.play_music)
-        
-        layout.add_widget(btn_play)
-        
-        # ⚠️ ضع هنا عناصر تصميمك القديم بالكامل (أزرار، صور، إلخ)
-        # مثال: layout.add_widget(your_old_widget)
-        
-        return layout
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+    - uses: actions/checkout@v4
 
-    def on_start(self):
-        """طلب صلاحيات ذاكرة الهاتف فور فتح التطبيق على الأندرويد لمنع الإغلاق المفاجئ"""
-        if platform == 'android':
-            try:
-                from android.permissions import request_permissions, Permission
-                request_permissions([
-                    Permission.READ_EXTERNAL_STORAGE, 
-                    Permission.WRITE_EXTERNAL_STORAGE
-                ])
-            except Exception as e:
-                print("خطأ في طلب التصاريح:", e)
+    - name: Set up Java 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
 
-    def play_music(self, instance):
-        """دالة تشغيل الموسيقى بمسار نسبي مباشر متوافق مع الأندرويد"""
-        # تأكد أن ملف الموسيقى بجوار الـ main.py مباشرة على الجيت هاب
-        sound_file = 'music.mp3' 
-        
-        if os.path.exists(sound_file):
-            sound = SoundLoader.load(sound_file)
-            if sound:
-                sound.play()
-        else:
-            print(f"الملف {sound_file} غير موجود في هذا المسار!")
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
 
-if __name__ == '__main__':
-    MyGameApp().run()
+    - name: Install System Dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libsqlite3-dev libgdbm-dev libssl-dev libbz2-dev libreadline-dev libmhash-dev libffi-dev
+
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Install Buildozer and Cython
+      run: |
+        pip install --upgrade pip
+        pip install "cython<3.0" buildozer virtualenv
+
+    - name: Build Android APK
+      run: |
+        export ANDROID_SDK_ROOT=$ANDROID_HOME
+        buildozer -v android debug
+
+    - name: Upload APK
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: my-android-app
+        path: bin/*.apk
