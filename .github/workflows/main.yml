@@ -1,24 +1,66 @@
-name: Build Android APK
 
-on:
-  push:
-  workflow_dispatch:
+Owner avatar
+my-kivy-app-
+Public
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+yahia1111/my-kivy-app-
+tT
+Name	Last commit message
+	Last commit date
+ 
+.github/workflows
+	
+Update main.yml
+	
+May 24, 2026
+buildozer.spec
+	
+Update buildozer.spec
+	
+May 24, 2026
+logo.jpg
+	
+Add files via upload
+	
+May 24, 2026
+main.py
+	
+Add files via upload
+	
+May 24, 2026
+sound.mp3
+	
+Add files via upload
+	
+May 24, 2026
+Repository files navigation
 
-      - name: Build with Buildozer (الأداة الرسمية الجاهزة)
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
-        with:
-          command: buildozer -v android debug
-          buildozer_version: stable
+    README
 
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: my-android-app
-          path: ${{ steps.buildozer.outputs.filename }}
+Add a README
+
+Help people interested in this repository understand your project.
+About
+No description, website, or topics provided.
+Activity
+Stars
+0 stars
+Watchers
+0 watching
+Forks
+0 forks
+Releases
+No releases published
+Create a new release
+Packages
+No packages published
+Publish your first package
+Contributors 1
+
+    @yahia1111
+    yahia1111
+
+Languages
+
+    Python 100.0% 
+
