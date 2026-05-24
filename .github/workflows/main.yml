@@ -26,23 +26,24 @@ jobs:
           sudo apt update
           sudo apt install -y git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libsqlite3-dev libgdbm-dev libssl-dev libbz2-dev libreadline-dev libmhash-dev libffi-dev
 
-      - name: Set up Android Tools
-        run: |
-          sudo apt install -y android-sdk sdkmanager
-          mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
-          sudo ln -s /usr/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager || true
+      - name: Set up Android SDK (الأداة الرسمية النظيفة)
+        uses: android-actions/setup-android@v3
 
       - name: Install Buildozer and Cython
         run: |
           pip install --upgrade pip
           pip install "cython<3.0" buildozer virtualenv
 
-      - name: Auto-Accept Licenses & Build APK
+      - name: Build Android APK
         run: |
-          mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
-          yes | sdkmanager --licenses || true
-          unset ANDROID_HOME
-          unset ANDROID_NDK_HOME
+          # تمرير المسارات الرسمية والنظيفة لأداة بيلدوزر مباشرة
+          export ANDROID_SDK_ROOT=$ANDROID_HOME
+          export ANDROID_HOME=$ANDROID_HOME
+          
+          # الموافقة التلقائية على جميع التراخيص الرسمية من قوقل
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          
+          # إطلاق أمر البناء النهائي
           buildozer -v android debug
 
       - name: Upload APK Artifact
