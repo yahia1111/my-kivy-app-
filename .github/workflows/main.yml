@@ -24,9 +24,9 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt update
-          sudo apt install -y git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libsqlite3-dev libgdbm-dev libssl-dev libbz2-dev libreadline-dev libmhash-dev libffi-dev
+          sudo apt install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libsqlite3-dev libgdbm-dev libssl-dev libbz2-dev libreadline-dev libmhash-dev libffi-dev
 
-      - name: Set up Android SDK (الأداة الرسمية النظيفة)
+      - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
       - name: Install Buildozer and Cython
@@ -34,14 +34,20 @@ jobs:
           pip install --upgrade pip
           pip install "cython<3.0" buildozer virtualenv
 
+      - name: Auto-Accept & Sync Licenses
+        run: |
+          # 1. الموافقة التلقائية على جميع التراخيص في الـ SDK الرئيسي للسيرفر
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          
+          # 2. إنشاء مجلد التراخيص المتوقع داخل مجلد بيلدوزر المخفي ونسخ التراخيص المقبولة إليه
+          mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
+          cp -r $ANDROID_HOME/licenses/* ~/.buildozer/android/platform/android-sdk/licenses/ || true
+
       - name: Build Android APK
         run: |
-          # تمرير المسارات الرسمية والنظيفة لأداة بيلدوزر مباشرة
+          # تمرير المسارات لضمان التزامن الكامل
           export ANDROID_SDK_ROOT=$ANDROID_HOME
           export ANDROID_HOME=$ANDROID_HOME
-          
-          # الموافقة التلقائية على جميع التراخيص الرسمية من قوقل
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
           
           # إطلاق أمر البناء النهائي
           buildozer -v android debug
