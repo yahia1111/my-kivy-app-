@@ -34,18 +34,22 @@ jobs:
           pip install --upgrade pip
           pip install "cython<3.0" buildozer virtualenv
 
-      - name: Auto-Accept & Sync Licenses
+      - name: Hack Buildozer SDK Layout (خدعة المسار القاطعة)
         run: |
-          # 1. الموافقة التلقائية على جميع التراخيص في الـ SDK الرئيسي للسيرفر
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          
-          # 2. إنشاء مجلد التراخيص المتوقع داخل مجلد بيلدوزر المخفي ونسخ التراخيص المقبولة إليه
+          # 1. إنشاء المجلدات المخفية التي ستبحث عنها أداة بيلدوزر محلياً
+          mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
           mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
+          
+          # 2. عمل رابط ذكي يربط الـ sdkmanager السحابي الحقيقي بالمسار القديم الذي تبحث عنه الأداة
+          ln -s $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager || true
+          
+          # 3. الموافقة التلقائية على التراخيص ومزامنتها داخل مجلد بيلدوزر
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
           cp -r $ANDROID_HOME/licenses/* ~/.buildozer/android/platform/android-sdk/licenses/ || true
 
       - name: Build Android APK
         run: |
-          # تمرير المسارات لضمان التزامن الكامل
+          # تمرير المسارات لضمان التزامن
           export ANDROID_SDK_ROOT=$ANDROID_HOME
           export ANDROID_HOME=$ANDROID_HOME
           
