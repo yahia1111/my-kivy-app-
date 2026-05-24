@@ -6,68 +6,19 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
+      - name: Build with Buildozer (الأداة الرسمية الجاهزة)
+        uses: ArtemSBulgakov/buildozer-action@v1
+        id: buildozer
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          command: buildozer -v android debug
+          buildozer_version: stable
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install System Dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libsqlite3-dev libgdbm-dev libssl-dev libbz2-dev libreadline-dev libmhash-dev libffi-dev
-
-      - name: Install Buildozer and Cython
-        run: |
-          pip install --upgrade pip
-          pip install "cython<3.0" buildozer virtualenv
-
-      - name: Force Download and Fix Sdkmanager Layout (الحل القاطع للمسار)
-        run: |
-          # 1. إنشاء المسار القديم الذي يبحث عنه بيلدوزر يدوياً
-          mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
-          
-          # 2. تحميل أدوات سطر الأوامر الرسمية المستقرة من قوقل مباشرة
-          cd ~/.buildozer/android/platform/android-sdk/tools
-          wget https://google.com -O cmd_tools.zip
-          unzip -q cmd_tools.zip
-          
-          # 3. ترتيب الملفات ووضع الـ sdkmanager في مجلد bin الصحيح
-          mv cmdline-tools/* bin/ || true
-          rm -rf cmdline-tools cmd_tools.zip
-
-      - name: Pre-Accept Licenses and Build APK
-        run: |
-          # 1. إنشاء مجلد التراخيص
-          mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
-          
-          # 2. كتابة بصمات التراخيص تلقائياً لمنع أي توقف
-          echo -e "2446ae9a69314158347e1222d19f51f3d4359645\n4650c28b46335acc4a46fa0c90829f8340368f34\n230b92cd3465357161b47ff077af520344564613\ned1d0a5b78b30d89fd4669e61ba94148fb74fab8" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
-          echo -e "84831b9409646a918e30573bab4c9c91346d8abd\n504667f4c0de7ece6a5ceee62175e156464728b6" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
-          
-          # 3. حظر مسارات السيرفر المتعارضة
-          unset ANDROID_HOME
-          unset ANDROID_NDK_HOME
-          unset ANDROID_SDK_ROOT
-          unset ANDROID_NDK_ROOT
-          
-          # 4. تشغيل البناء المستقل الآمن
-          buildozer -v android debug
-
-      - name: Upload APK
-        if: success()
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: my-android-app
-          path: bin/*.apk
+          path: ${{ steps.buildozer.outputs.filename }}
