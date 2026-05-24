@@ -16,24 +16,28 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Install System Dependencies & Android SDK tools
+    - name: Install System Dependencies
       run: |
         sudo apt update
-        sudo apt install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libsqlite3-dev libgdbm-dev libssl-dev libbz2-dev libreadline-dev libmhash-dev libffi-dev google-android-sdk-installer sdkmanager
+        sudo apt install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libsqlite3-dev libgdbm-dev libssl-dev libbz2-dev libreadline-dev libmhash-dev libffi-dev
 
     - name: Install Buildozer and Cython
       run: |
         pip install --upgrade pip
         pip install "cython<3.0" buildozer virtualenv
 
-    - name: Link SDK Manager for Buildozer
+    - name: Setup Android Commandline Tools Manually
       run: |
-        mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
-        if [ -f /usr/bin/sdkmanager ]; then
-          ln -s /usr/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
-        elif [ -f /usr/lib/android-sdk/tools/bin/sdkmanager ]; then
-          ln -s /usr/lib/android-sdk/tools/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
-        fi
+        mkdir -p ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest
+        cd ~/.buildozer/android/platform/android-sdk/cmdline-tools
+        wget https://google.com -O tools.zip
+        unzip -q tools.zip
+        mv cmdline-tools/* latest/
+        rm -rf cmdline-tools tools.zip
+        
+        # ربط مسار الأدوات بالمسار القديم الذي تبحث عنه أداة Buildozer
+        mkdir -p ../tools/bin
+        ln -s ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager ../tools/bin/sdkmanager
 
     - name: Auto-Accept Android SDK Licenses
       run: |
