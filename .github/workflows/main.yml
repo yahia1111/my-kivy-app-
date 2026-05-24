@@ -26,34 +26,23 @@ jobs:
           sudo apt update
           sudo apt install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libsqlite3-dev libgdbm-dev libssl-dev libbz2-dev libreadline-dev libmhash-dev libffi-dev
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install Buildozer and Cython
         run: |
           pip install --upgrade pip
           pip install "cython<3.0" buildozer virtualenv
 
-      - name: Hack Buildozer SDK Layout (خدعة المسار القاطعة)
+      - name: Build Android APK (الدمج القاطع للمسارات)
         run: |
-          # 1. إنشاء المجلدات المخفية التي ستبحث عنها أداة بيلدوزر محلياً
-          mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
+          # إجبار بيلدوزر على استخدام الـ SDK والـ NDK المدمجين بالسيرفر واللذان لا يخطئان أبداً
+          mkdir -p ~/.buildozer/android/platform
+          ln -s $ANDROID_HOME ~/.buildozer/android/platform/android-sdk || true
+          
+          # إجبار بيلدوزر على قبول التراخيص محلياً وسحابياً
           mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
-          
-          # 2. عمل رابط ذكي يربط الـ sdkmanager السحابي الحقيقي بالمسار القديم الذي تبحث عنه الأداة
-          ln -s $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager || true
-          
-          # 3. الموافقة التلقائية على التراخيص ومزامنتها داخل مجلد بيلدوزر
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
           cp -r $ANDROID_HOME/licenses/* ~/.buildozer/android/platform/android-sdk/licenses/ || true
-
-      - name: Build Android APK
-        run: |
-          # تمرير المسارات لضمان التزامن
-          export ANDROID_SDK_ROOT=$ANDROID_HOME
-          export ANDROID_HOME=$ANDROID_HOME
           
-          # إطلاق أمر البناء النهائي
+          # تشغيل البناء النهائي المستقر
           buildozer -v android debug
 
       - name: Upload APK Artifact
