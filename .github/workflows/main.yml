@@ -11,6 +11,12 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Set up Java 17 (حل مشكلة إصدار الجافا)
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -19,9 +25,9 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt update
-        sudo apt install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libsqlite3-dev libgdbm-dev libssl-dev libbz2-dev libreadline-dev libmhash-dev libffi-dev
+        sudo apt install -y git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libsqlite3-dev libgdbm-dev libssl-dev libbz2-dev libreadline-dev libmhash-dev libffi-dev
 
-    - name: Set up Android SDK (الأداة الرسمية المضمونة)
+    - name: Set up Android SDK
       uses: android-actions/setup-android@v3
 
     - name: Install Buildozer and Cython
@@ -31,7 +37,6 @@ jobs:
 
     - name: Build Android APK
       run: |
-        # نخبر أداة بيلدوزر باستخدام الأندرويد جاهزاً من السيرفر السحابي مباشرة
         export ANDROID_SDK_ROOT=$ANDROID_HOME
         buildozer -v android debug
 
