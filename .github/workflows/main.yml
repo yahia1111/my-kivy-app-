@@ -1,66 +1,53 @@
+name: Build Android APK
 
-Owner avatar
-my-kivy-app-
-Public
+on:
+  push:
+  workflow_dispatch:
 
-yahia1111/my-kivy-app-
-tT
-Name	Last commit message
-	Last commit date
- 
-.github/workflows
-	
-Update main.yml
-	
-May 24, 2026
-buildozer.spec
-	
-Update buildozer.spec
-	
-May 24, 2026
-logo.jpg
-	
-Add files via upload
-	
-May 24, 2026
-main.py
-	
-Add files via upload
-	
-May 24, 2026
-sound.mp3
-	
-Add files via upload
-	
-May 24, 2026
-Repository files navigation
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
 
-    README
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
-Add a README
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-Help people interested in this repository understand your project.
-About
-No description, website, or topics provided.
-Activity
-Stars
-0 stars
-Watchers
-0 watching
-Forks
-0 forks
-Releases
-No releases published
-Create a new release
-Packages
-No packages published
-Publish your first package
-Contributors 1
+      - name: Install System Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libsqlite3-dev libgdbm-dev libssl-dev libbz2-dev libreadline-dev libmhash-dev libffi-dev
 
-    @yahia1111
-    yahia1111
+      - name: Set up Android Tools
+        run: |
+          sudo apt install -y android-sdk sdkmanager
+          mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
+          sudo ln -s /usr/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager || true
 
-Languages
+      - name: Install Buildozer and Cython
+        run: |
+          pip install --upgrade pip
+          pip install "cython<3.0" buildozer virtualenv
 
-    Python 100.0% 
+      - name: Auto-Accept Licenses & Build APK
+        run: |
+          mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
+          yes | sdkmanager --licenses || true
+          unset ANDROID_HOME
+          unset ANDROID_NDK_HOME
+          buildozer -v android debug
 
+      - name: Upload APK Artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: my-android-app
+          path: bin/*.apk
