@@ -33,15 +33,22 @@ jobs:
           pip install --upgrade pip
           pip install "cython<3.0" buildozer virtualenv
 
-      - name: Build Android APK (حظر المسارات المتعارضة)
+      - name: Pre-Accept Licenses and Build APK (الحل النهائي)
         run: |
-          # حظر وإلغاء مسارات السيرفر الافتراضية لمنع التشتيت
+          # 1. إنشاء مجلد التراخيص محلياً داخل مسار بيلدوزر المتوقع
+          mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
+          
+          # 2. كتابة بصمات تراخيص قوقل (بما فيها الحزمة 37 الجديدة) تلقائياً لمنع سؤال (y/N)
+          echo -e "2446ae9a69314158347e1222d19f51f3d4359645\n4650c28b46335acc4a46fa0c90829f8340368f34\n230b92cd3465357161b47ff077af520344564613\ned1d0a5b78b30d89fd4669e61ba94148fb74fab8" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
+          echo -e "84831b9409646a918e30573bab4c9c91346d8abd\n504667f4c0de7ece6a5ceee62175e156464728b6" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
+          
+          # 3. حظر وإلغاء مسارات السيرفر المتعارضة
           unset ANDROID_HOME
           unset ANDROID_NDK_HOME
           unset ANDROID_SDK_ROOT
           unset ANDROID_NDK_ROOT
           
-          # تشغيل البناء المستقل
+          # 4. تشغيل البناء المستقل الآمن
           buildozer -v android debug
 
       - name: Upload APK
