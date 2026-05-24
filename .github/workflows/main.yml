@@ -26,6 +26,12 @@ jobs:
         pip install --upgrade pip
         pip install "cython<3.0" buildozer virtualenv
 
+    - name: Auto-Accept Android SDK Licenses
+      run: |
+        mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
+        echo -e "2446ae9a69314158347e1222d19f51f3d4359645\n4650c28b46335acc4a46fa0c90829f8340368f34\n230b92cd3465357161b47ff077af520344564613" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
+        echo -e "84831b9409646a918e30573bab4c9c91346d8abd\n504667f4c0de7ece6a5ceee62175e156464728b6" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
+
     - name: Build Android APK
       run: |
         buildozer -v android debug
