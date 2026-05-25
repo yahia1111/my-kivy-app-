@@ -51,7 +51,7 @@ fullscreen = 1
 android.permissions = INTERNET, CALL_PHONE
 
 # (int) Target Android API, should be as high as possible.
-android.api = 33
+android.api = 31
 
 # (int) Minimum API your APK will support.
 android.minapi = 21
@@ -65,7 +65,7 @@ android.skip_update = False
 
 # (bool) If True, then automatically accept SDK license
 # agreements. This is intended for automation only.
-android.accept_ some_licenses = True
+android.accept_some_licenses = True
 
 # (str) Android logcat filters to use
 #android.logcat_filters = *:S python:D
