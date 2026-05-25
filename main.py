@@ -1,10 +1,29 @@
 import os
 import sqlite3
+import threading
+import time
 from flask import Flask, render_template_string, request, redirect, send_file
+
+# إعدادات أندرويد ومحرك الرسوميات واجهة Kivy
+from kivy.app import App
+from kivy.uix.boxlayout import BoxLayout
+from kivy.clock import Clock
+
+# محرك الويب المخصص للأندرويد لعرض صفحات الويب داخل التطبيق
+try:
+    from jnius import autoclass
+    from android.runnable import run_on_ui_thread
+    AndroidWebView = autoclass('android.webkit.WebView')
+    AndroidWebViewClient = autoclass('android.webkit.WebViewClient')
+    Activity = autoclass('org.kivy.android.PythonActivity').mActivity
+except ImportError:
+    # لتجنب الأخطاء عند تجربة الكود على الكمبيوتر قبل رفعه
+    run_on_ui_thread = lambda x: x
+    AndroidWebView = None
 
 app = Flask(__name__)
 DB_FILE = "maintenance_pro.db"
-AUDIO_FILE = "sound.mp3"  # اسم ملف الصوت بتاعك
+AUDIO_FILE = "sound.mp3"  # اسم ملف الصوت الخاص بك
 
 # إنشاء قاعدة البيانات والجدول
 def init_db():
@@ -99,14 +118,12 @@ HTML_TEMPLATE = '''
 </head>
 <body>
 
-    <!-- كود تشغيل الموسيقى تلقائياً بشكل مخفي عند فتح التطبيق -->
     {% if audio_exists %}
     <audio autoplay loop style="display:none;">
         <source src="/get_audio" type="audio/mpeg">
     </audio>
     {% endif %}
 
-    <!-- الشريط الإعلاني المتحرك -->
     <div class="marquee-container">
         <marquee direction="right" scrollamount="5">
             ❄️ أبو يحيى للتبريد والتكييف .. شحن فريون - صيانة غسالات وثلاجات - تركيب وتكييفات بأعلى جودة وضمان 🛠️ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 📞 اتصل بنا في أي وقت ونصلك فوراً!
@@ -114,13 +131,11 @@ HTML_TEMPLATE = '''
     </div>
 
     <div class="container">
-        <!-- الهيدر باسمك -->
         <div class="header">
             <h1>🛠️ لوحة تحكم البشمهندس يحيى 🛠️</h1>
             <p>نظام إدارة حجز وصيانة عملاء التبريد والتكييف</p>
         </div>
 
-        <!-- استمارة الحجز -->
         <div class="form-card">
             <h3>📝 سجل حجز جديد هنا</h3>
             <form action="/add" method="POST">
@@ -146,7 +161,6 @@ HTML_TEMPLATE = '''
 
         <h3 style="text-align: right; color: #475569;">📋 قائمة المواعيد والعملاء الحالية</h3>
         
-        <!-- عرض المواعيد -->
         {% if not rows %}
             <p style="text-align: center; color: #64748b; font-weight: bold;">مفيش أي مواعيد صيانة متسجلة دلوقتي، جدولك رايق!</p>
         {% else %}
@@ -180,7 +194,6 @@ def index():
     audio_exists = os.path.exists(AUDIO_FILE)
     return render_template_string(HTML_TEMPLATE, rows=rows, audio_exists=audio_exists)
 
-# سطر إرسال ملف الصوت للمتصفح لتشغيله
 @app.route('/get_audio')
 def get_audio():
     if os.path.exists(AUDIO_FILE):
@@ -210,5 +223,33 @@ def delete(appt_id):
     conn.close()
     return redirect('/')
 
+# دالة لتشغيل سيرفر Flask في خيط مستقل بالخلفية لمنع تجمد التطبيق
+def start_flask():
+    app.run(host='127.0.0.1', port=8080, debug=False, threaded=True)
+
+# بناء واجهة الهاتف المستقرة عبر Kivy
+class MobileUI(BoxLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        Clock.schedule_once(self.create_webview, 1)
+
+    @run_on_ui_thread
+    def create_webview(self, dt):
+        if AndroidWebView:
+            self.webview = AndroidWebView(Activity)
+            self.webview.getSettings().setJavaScriptEnabled(True)
+            self.webview.getSettings().setDomStorageEnabled(True)
+            self.webview.setWebViewClient(AndroidWebViewClient())
+            Activity.setContentView(self.webview)
+            self.webview.loadUrl("http://127.0.0.1:8080")
+
+class MaintenanceApp(App):
+    def build(self):
+        # بدء تشغيل سيرفر الويب الخلفي
+        flask_thread = threading.Thread(target=start_flask)
+        flask_thread.daemon = True
+        flask_thread.start()
+        return MobileUI()
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    MaintenanceApp().run()
