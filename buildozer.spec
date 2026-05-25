@@ -1,7 +1,7 @@
 [app]
-title = MyApp
-package.name = mycustomapp
-package.domain = com.yourname
+title = MyMusicPlayer
+package.name = yahiaapp
+package.domain = com.yahia
 source.dir = .
 source.include_exts = py,png,jpg,jpeg,mp3,wav
 version = 0.1
