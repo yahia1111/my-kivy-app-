@@ -10,11 +10,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Java 17
+      # 1. تثبيت جافا 11 لحل خطأ java.lang.NoClassDefFoundError نهائياً
+      - name: Set up Java 11
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '11'
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -24,39 +25,24 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt update
-          sudo apt install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libsqlite3-dev libgdbm-dev libssl-dev libbz2-dev libreadline-dev libmhash-dev libffi-dev aidl
-
-      - name: Setup Android SDK Tools
-        uses: android-actions/setup-android@v3
+          sudo apt install -y git zip unzip openjdk-11-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libsqlite3-dev libgdbm-dev libssl-dev libbz2-dev libreadline-dev libmhash-dev libffi-dev aidl
 
       - name: Install Buildozer and Cython
         run: |
           pip install --upgrade pip
           pip install "cython<3.0" buildozer virtualenv
 
-      - name: Inject Configuration and Build
+      - name: Pure Buildozer Android Build
         run: |
-          # 1. تنظيف أي مسارات يدوية في الـ spec
+          # 1. تنظيف أي إعدادات مسارات مخصصة في ملف الـ spec ليعتمد بيلدوزر على التثبيت التلقائي النظيف
           sed -i 's/^android.sdk_path =.*/#android.sdk_path =/' buildozer.spec || true
           sed -i 's/^android.ndk_path =.*/#android.ndk_path =/' buildozer.spec || true
           
-          # 2. إنشاء مجلدات وتفعيل التراخيص والـ Repositories كاملة
-          mkdir -p ~/.android
-          touch ~/.android/repositories.cfg
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          
-          # 3. تحميل النسخة المطلوبة بدقة لـ build-tools وربطها لمنع بيلدوزر من تخمين نسخة خاطئة
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.1" "platform-tools" "platforms;android-33" || true
-          
-          # 4. عمل كوبري (Symlink) ذكي يربط الـ SDK الكامل بتاع جيت هاب ببيئة بيلدوزر عشان يلاقي أداة الـ aidl فوراً
-          mkdir -p ~/.buildozer/android/platform/
-          rm -rf ~/.buildozer/android/platform/android-sdk
-          ln -s $ANDROID_HOME ~/.buildozer/android/platform/android-sdk || true
-          
-          # 5. تنظيف أي كاش تالف لبدء بناء نقي
+          # 2. إزالة مجلدات الكاش القديمة لضمان عدم تداخل الملفات التالفة
           rm -rf .buildozer/
+          rm -rf ~/.buildozer/
           
-          # 6. تشغيل التجميع النهائي المباشر للـ APK
+          # 3. إطلاق التجميع النهائي المباشر للـ APK
           buildozer -v android debug
 
       - name: Upload APK Artifact
