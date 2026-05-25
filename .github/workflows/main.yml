@@ -26,41 +26,22 @@ jobs:
           sudo apt update
           sudo apt install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libsqlite3-dev libgdbm-dev libssl-dev libbz2-dev libreadline-dev libmhash-dev libffi-dev
 
-      - name: Setup Android SDK Tools
-        uses: android-actions/setup-android@v3
-
       - name: Install Buildozer and Cython
         run: |
           pip install --upgrade pip
           pip install "cython<3.0" buildozer virtualenv
 
-      - name: Inject SDK Tools and Build
+      - name: Build with Buildozer Auto-SDK
         run: |
-          # 1. إجبار وتحديث ملف buildozer.spec لقراءة مسارات الـ SDK والـ NDK الحقيقية للسيرفر
-          sed -i "s|#android.sdk_path =.*|android.sdk_path = /usr/local/lib/android/sdk|g" buildozer.spec
-          sed -i "s|#android.ndk_path =.*|android.ndk_path = /usr/local/lib/android/sdk/ndk/27.3.13750724|g" buildozer.spec
+          # 1. إزالة أي مسارات قديمة أو معلقة في ملف buildozer.spec ليعتمد على التثبيت الآلي النظيف
+          sed -i 's/^android.sdk_path =.*/#android.sdk_path =/' buildozer.spec || true
+          sed -i 's/^android.ndk_path =.*/#android.ndk_path =/' buildozer.spec || true
           
-          # 2. إنشاء وتأمين الروابط المباشرة داخل مجلد بيلدوزر الافتراضي كخطة بديلة
-          mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
-          mkdir -p ~/.buildozer/android/platform/android-sdk/platform-tools
-          mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
-          
-          ln -s $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager || true
-          ln -s $ANDROID_HOME/platform-tools/adb ~/.buildozer/android/platform/android-sdk/platform-tools/adb || true
-          
-          # 3. قبول التراخيص القانونية ومزامنتها
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          cp -r $ANDROID_HOME/licenses/* ~/.buildozer/android/platform/android-sdk/licenses/ || true
-          
-          # 4. تفعيل متغيرات البيئة للـ Compiler والـ PATH
-          export ANDROID_SDK_ROOT=$ANDROID_HOME
-          export ANDROID_HOME=$ANDROID_HOME
-          export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
-          
-          # 5. تنظيف أي كاش يدوي قديم
+          # 2. تنظيف مجلد بيلدوزر بالكامل لبدء عملية بناء نظيفة من الصفر
           rm -rf .buildozer/
+          rm -rf ~/.buildozer/
           
-          # 6. بدء البناء الفعلي المباشر
+          # 3. تشغيل البناء المباشر (سيقوم بيلدوزر هنا بتحميل الإصدارات المتوافقة معه تماماً تلقائياً)
           buildozer -v android debug
 
       - name: Upload APK Artifact
