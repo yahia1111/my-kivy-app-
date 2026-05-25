@@ -19,14 +19,14 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.10'
 
       - name: Install System Dependencies
         run: |
           sudo apt update
           sudo apt install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libsqlite3-dev libgdbm-dev libssl-dev libbz2-dev libreadline-dev libmhash-dev libffi-dev
 
-      - name: Setup Android SDK Tools (الأكاديمية الرسمية من قوقل)
+      - name: Setup Android SDK Tools
         uses: android-actions/setup-android@v3
 
       - name: Install Buildozer and Cython
@@ -36,27 +36,24 @@ jobs:
 
       - name: Inject SDK Tools and Build
         run: |
-          # تجهيز المجلد المفقود يدوياً قبل تشغيل بيلدوزر لحل المشكلة فوراً
           mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
           mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
           
-          # ربط الـ sdkmanager السحابي الحقيقي بالمسار المحلي لبيلدوزر
           ln -s $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager || true
           
-          # قبول التراخيص ومزامنتها محلياً
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
           cp -r $ANDROID_HOME/licenses/* ~/.buildozer/android/platform/android-sdk/licenses/ || true
           
-          # تمرير المسارات لضمان التثبيت النظيف
           export ANDROID_SDK_ROOT=$ANDROID_HOME
           export ANDROID_HOME=$ANDROID_HOME
           
-          # إطلاق البناء النهائي
+          # تنظيف الكاش القديم لضمان عدم بناء التطبيق على نسخة 3.14 الخاطئة
+          buildozer android clean
           buildozer -v android debug
 
       - name: Upload APK Artifact
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: my-android-app
+          name: android-apk
           path: bin/*.apk
