@@ -36,19 +36,28 @@ jobs:
 
       - name: Inject SDK Tools and Build
         run: |
+          # 1. تجهيز مجلدات الـ SDK والـ Licenses
           mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
           mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
           
+          # 2. حل مشكلة FileNotFoundError لـ python-for-android عبر إنشاء المجلد المفقود يدوياً
+          mkdir -p .buildozer/android/platform/python-for-android
+          
+          # 3. ربط الـ sdkmanager السحابي
           ln -s $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager || true
           
+          # 4. قبول التراخيص ومزامنتها
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
           cp -r $ANDROID_HOME/licenses/* ~/.buildozer/android/platform/android-sdk/licenses/ || true
           
+          # 5. تمرير متغيرات البيئة للـ SDK
           export ANDROID_SDK_ROOT=$ANDROID_HOME
           export ANDROID_HOME=$ANDROID_HOME
           
-          # تنظيف الكاش القديم لضمان عدم بناء التطبيق على نسخة 3.14 الخاطئة
+          # 6. تنظيف البناء القديم (سيمر الآن بأمان لأن المجلد أصبح موجوداً)
           buildozer android clean
+          
+          # 7. إطلاق البناء النهائي لـ APK
           buildozer -v android debug
 
       - name: Upload APK Artifact
