@@ -40,24 +40,21 @@ jobs:
           mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
           mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
           
-          # 2. حل مشكلة FileNotFoundError لـ python-for-android عبر إنشاء المجلد المفقود يدوياً
-          mkdir -p .buildozer/android/platform/python-for-android
-          
-          # 3. ربط الـ sdkmanager السحابي
+          # 2. ربط الـ sdkmanager السحابي
           ln -s $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager || true
           
-          # 4. قبول التراخيص ومزامنتها
+          # 3. قبول التراخيص ومزامنتها
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
           cp -r $ANDROID_HOME/licenses/* ~/.buildozer/android/platform/android-sdk/licenses/ || true
           
-          # 5. تمرير متغيرات البيئة للـ SDK
+          # 4. تمرير متغيرات البيئة للـ SDK
           export ANDROID_SDK_ROOT=$ANDROID_HOME
           export ANDROID_HOME=$ANDROID_HOME
           
-          # 6. تنظيف البناء القديم (سيمر الآن بأمان لأن المجلد أصبح موجوداً)
-          buildozer android clean
+          # 5. تنظيف مخلفات الكاش القديمة يدوياً عبر النظام لتفادي خطأ بيلدوزر
+          rm -rf .buildozer/
           
-          # 7. إطلاق البناء النهائي لـ APK
+          # 6. إطلاق البناء النهائي المباشر لـ APK
           buildozer -v android debug
 
       - name: Upload APK Artifact
