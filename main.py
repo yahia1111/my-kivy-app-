@@ -5,20 +5,24 @@ import time
 from datetime import datetime, timedelta
 from flask import Flask, render_template_string, request, redirect, send_file
 
-# إعدادات واجهة Kivy والوقت
+# إعدادات واجهة Kivy والوقت للأندرويد
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.clock import Clock
 
-# استدعاء محرك الويب وأدوات التنبيهات الرسمية للأندرويد
+# استدعاء محرك الويب وأدوات التنبيهات وصلاحيات الأندرويد الرسمية
 try:
     from jnius import autoclass
     from android.runnable import run_on_ui_thread
+    from android.permissions import request_permissions, Permission
+    
     AndroidWebView = autoclass('android.webkit.WebView')
     AndroidWebViewClient = autoclass('android.webkit.WebViewClient')
     Activity = autoclass('org.kivy.android.PythonActivity').mActivity
     
-    # أدوات إشعارات أندرويد الرسمية (Notification Manager)
+    # تحديد المسار الداخلي الآمن للأندرويد لحل مشكلة قراءة البيانات والصوت
+    BASE_DIR = Activity.getFilesDir().getAbsolutePath()
+    
     Context = autoclass('android.content.Context')
     NotificationBuilder = autoclass('android.app.Notification$Builder')
     NotificationManager = autoclass('android.app.NotificationManager')
@@ -26,10 +30,23 @@ try:
 except ImportError:
     run_on_ui_thread = lambda x: x
     AndroidWebView = None
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    request_permissions = lambda x: None
+    Permission = None
 
 app = Flask(__name__)
-DB_FILE = "maintenance_pro.db"
-AUDIO_FILE = "sound.mp3"
+
+# دمج المسارات داخل المجلد الآمن المسموح للتطبيق بالكتابة والقراءة منه
+DB_FILE = os.path.join(BASE_DIR, "maintenance_pro.db")
+AUDIO_FILE = os.path.join(BASE_DIR, "sound.mp3")
+
+# نسخ ملف الصوت برمجياً للمجلد الآمن إذا كان متواجداً في مجلد التثبيت الرئيسي
+if not os.path.exists(AUDIO_FILE) and os.path.exists("sound.mp3"):
+    try:
+        import shutil
+        shutil.copy("sound.mp3", AUDIO_FILE)
+    except:
+        pass
 
 def init_db():
     conn = sqlite3.connect(DB_FILE)
@@ -45,7 +62,7 @@ def init_db():
 
 init_db()
 
-# دالة إرسال التنبيهات الرسمية لشاشة الأندرويد مع العبارة المخصصة
+# دالة إرسال التنبيهات الرسمية لشاشة الأندرويد
 def send_android_notification(title, message):
     if not AndroidWebView:
         print(f"🖥️ تنبيه على الكمبيوتر: {title} - {message}")
@@ -54,7 +71,6 @@ def send_android_notification(title, message):
         notif_manager = Activity.getSystemService(Context.NOTIFICATION_SERVICE)
         channel_id = "yh_maintenance_channels"
         
-        # إنشاء قناة الإشعارات (مطلوب لأندرويد 8 وأحدث)
         channel = NotificationChannel(channel_id, "مواعيد الصيانة", NotificationManager.IMPORTANCE_HIGH)
         notif_manager.createNotificationChannel(channel)
         
@@ -68,7 +84,7 @@ def send_android_notification(title, message):
     except Exception as e:
         print(f"خطأ في إرسال التنبيه: {e}")
 
-# خيط فحص المواعيد تلقائياً في الخلفية كل دقيقة لإرسال التنبيهات
+# خيط فحص المواعيد تلقائياً في الخلفية كل دقيقة
 def check_appointments_worker():
     while True:
         try:
@@ -80,7 +96,6 @@ def check_appointments_worker():
             conn.close()
             
             for match in matches:
-                # تم إضافة العبارة المخصصة هنا لتظهر في العنوان ونص التنبيه
                 send_android_notification(
                     f"⏰ بعد إذنك يا أبو يحيى: ميعاد صيانة", 
                     f"الزبون: {match[0]} | 📍 العنوان: {match[1]} - توكل على الله!"
@@ -89,7 +104,7 @@ def check_appointments_worker():
             print(e)
         time.sleep(60)
 
-# واجهة لوحة التحكم المحدثة مع زر التأجيل (Snooze) لـ 15 دقيقة
+# واجهة لوحة التحكم الاحترافية
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -130,7 +145,7 @@ HTML_TEMPLATE = '''
 
     <div class="marquee-container">
         <marquee direction="right" scrollamount="5">
-            ❄️ أبو يحيى للتبريد والتكييف .. شحن فريون - صيانة غسالات وثلاجات - تركيب وتكييفات بأعلى جودة وضمان 🛠️
+            ❄️ أبو يحيى للتبريد والتكييف .. صيانة وتركيب بأعلى جودة وضمان 🛠️
         </marquee>
     </div>
 
@@ -158,7 +173,7 @@ HTML_TEMPLATE = '''
         {% else %}
             {% for row in rows %}
             <div class="appt-card">
-                <h4>👤 الزبون: {{ row[1] }}</h4>
+                <h4>👤 : {{ row[1] }}</h4>
                 <p><b>📞 تليفون:</b> {{ row[2] }} &nbsp;|&nbsp; <b>📍 عنوان:</b> {{ row[3] }}</p>
                 <p class="time"><b>⏰ ميعاد الزيارة:</b> {{ row[4] }}</p>
                 
@@ -206,7 +221,6 @@ def add():
     conn.close()
     return redirect('/')
 
-# رابط لتأجيل ميعاد التنبيه والعميل لمدة 15 دقيقة إضافية
 @app.route('/snooze/<int:appt_id>')
 def snooze(appt_id):
     conn = sqlite3.connect(DB_FILE)
@@ -215,8 +229,3 @@ def snooze(appt_id):
     row = cursor.fetchone()
     if row:
         try:
-            current_time = datetime.strptime(row[0], "%Y-%m-%d %H:%M")
-            new_time = current_time + timedelta(minutes=15)
-            new_time_str = new_time.strftime("%Y-%m-%d %H:%M")
-            cursor.execute("UPDATE appointments SET date_time = ? WHERE id = ?", (new_time_str, appt_id))
-            conn.commit()
