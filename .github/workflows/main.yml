@@ -10,51 +10,62 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 1. تهيئة جافا 11 المستقرة والمتوافقة مع بيلدوزر وأندرويد
       - name: Set up Java 11
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '11'
 
+      # 2. تهيئة بيئة بايثون 3.10 المستقرة
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
+      # 3. تثبيت كافة الاعتماديات المساعدة لنظام التشغيل بما فيها أداة aidl البرمجية
       - name: Install System Dependencies
         run: |
           sudo apt update
           sudo apt install -y git zip unzip openjdk-11-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libsqlite3-dev libgdbm-dev libssl-dev libbz2-dev libreadline-dev libmhash-dev libffi-dev aidl
 
+      # 4. استدعاء وإعداد حزمة أندرويد SDK الرسمية والمثبتة مسبقاً على خوادم جيت هاب
+      - name: Setup Android SDK Tools
+        uses: android-actions/setup-android@v3
+
+      # 5. تثبيت بيلدوزر والنسخة المتوافقة لـ Cython
       - name: Install Buildozer and Cython
         run: |
           pip install --upgrade pip
           pip install "cython<3.0" buildozer virtualenv
 
-      - name: Pre-install Stable Android SDK and Build
+      # 6. ربط الـ SDK وقبول التراخيص وتثبيت حزمة أدوات البناء المستقرة 31
+      - name: Pure Buildozer Android Build
         run: |
-          # 1. تنظيف أي مسارات قديمة أو كاش تالف
+          # تنظيف إعدادات المسارات المخصصة من ملف الـ spec ليعتمد بيلدوزر على الربط المباشر
+          sed -i 's/^android.sdk_path =.*/#android.sdk_path =/' buildozer.spec || true
+          sed -i 's/^android.ndk_path =.*/#android.ndk_path =/' buildozer.spec || true
+          
+          # إنشاء مجلد مستودعات الأندرويد والموافقة الشاملة الفورية على كافة التراخيص
+          mkdir -p ~/.android
+          touch ~/.android/repositories.cfg
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          
+          # إجبار وتثبيت حزمة أدوات البناء المستقرة إصدار 31.0.0 لمنع بيلدوزر من طلب نسخة 37
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;31.0.0" "platforms;android-31" "platform-tools" || true
+          
+          # عمل كوبري (Symlink) يربط الـ SDK الجاهز والنقي بالمسار الذي يتوقعه بيلدوزر تماماً
+          mkdir -p ~/.buildozer/android/platform/
+          rm -rf ~/.buildozer/android/platform/android-sdk
+          ln -s $ANDROID_HOME ~/.buildozer/android/platform/android-sdk || true
+          
+          # تنظيف أي كاش محلي معلق
           rm -rf .buildozer/
-          rm -rf ~/.buildozer/
           
-          # 2. إنشاء الهيكل الداخلي لمجلدات أندرويد التي يتوقعها بيلدوزر بدقة
-          mkdir -p ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest
-          mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
-          
-          # 3. تحميل وتثبيت أدوات السطر البرمجي الرسمية المستقرة من جوجل مباشرة
-          wget -q https://google.com -O cmdline.zip
-          unzip -q cmdline.zip
-          mv cmdline-tools/* ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/
-          
-          # 4. الموافقة الإجبارية والشاملة على كافة تراخيص الـ SDK برمجياً
-          yes | ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk --licenses || true
-          
-          # 5. التنزيل والتثبيت المسبق لنسخة أدوات البناء المستقرة 33.0.1 لمنع تحميل نسخة 37
-          ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk "build-tools;33.0.1" "platforms;android-33" "platform-tools" || true
-          
-          # 6. إطلاق التجميع النهائي المباشر والآمن للـ APK
+          # إطلاق عملية التجميع النهائي المباشر والآمن لملف الـ APK
           buildozer -v android debug
 
+      # 7. رفع ملف الـ APK النهائي ليكون جاهزاً للتحميل مباشرة من حسابك
       - name: Upload APK Artifact
         if: success()
         uses: actions/upload-artifact@v4
