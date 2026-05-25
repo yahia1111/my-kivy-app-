@@ -10,53 +10,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
+      - name: Build APK with Buildozer Action
+        uses: ArtemisAnatolich/buildozer-action@v1
         with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install System Dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libsqlite3-dev libgdbm-dev libssl-dev libbz2-dev libreadline-dev libmhash-dev libffi-dev aidl
-
-      - name: Setup Android SDK Tools
-        uses: android-actions/setup-android@v3
-
-      - name: Install Buildozer and Cython
-        run: |
-          pip install --upgrade pip
-          pip install "cython<3.0" buildozer virtualenv
-
-      - name: Build with Buildozer Auto-SDK
-        run: |
-          # 1. إزالة أي مسارات قديمة أو معلقة في ملف buildozer.spec
-          sed -i 's/^android.sdk_path =.*/#android.sdk_path =/' buildozer.spec || true
-          sed -i 's/^android.ndk_path =.*/#android.ndk_path =/' buildozer.spec || true
-          
-          # 2. الموافقة الإجبارية والشاملة على كافة تراخيص الـ SDK لمنع خطأ License not accepted
-          mkdir -p ~/.android
-          touch ~/.android/repositories.cfg
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          
-          # 3. تثبيت حزمة build-tools المستقرة وربط أداة aidl لتجنب عطل التنزيل التلقائي لنسخة 37
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.1" "platform-tools" "platforms;android-33" || true
-          
-          # 4. محاكاة مجلد بيلدوزر وربطه بـ SDK الخادم لتفادي عطل "Aidl not found"
-          mkdir -p ~/.buildozer/android/platform/
-          ln -s $ANDROID_HOME ~/.buildozer/android/platform/android-sdk || true
-          
-          # 5. تنظيف مجلد الكاش المحلي
-          rm -rf .buildozer/
-          
-          # 6. تشغيل التجميع الفعلي المباشر
-          buildozer -v android debug
+          command: buildozer -v android debug
+          repository_root: .
 
       - name: Upload APK Artifact
         if: success()
