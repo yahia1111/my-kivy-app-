@@ -10,8 +10,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build APK with Buildozer Action
-        uses: ArtemisAnatolich/buildozer-action@v1
+      - name: Build APK with Official Buildozer Action
+        uses: ArtemSBulgakov/buildozer-action@v1
         with:
           command: buildozer -v android debug
           repository_root: .
