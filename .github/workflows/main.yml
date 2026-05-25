@@ -10,12 +10,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 1. تهيئة جافا 11 المستقرة والمتوافقة مع بيلدوزر وأندرويد
-      - name: Set up Java 11
+      # 1. ترقية جافا إلى إصدار 17 ليتوافق مع أدوات أندرويد الحديثة 16.0
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '11'
+          java-version: '17'
 
       # 2. تهيئة بيئة بايثون 3.10 المستقرة
       - name: Set up Python
@@ -23,13 +23,13 @@ jobs:
         with:
           python-version: '3.10'
 
-      # 3. تثبيت كافة الاعتماديات المساعدة لنظام التشغيل بما فيها أداة aidl البرمجية
+      # 3. تثبيت كافة الاعتماديات المساعدة لنظام التشغيل وجافا 17
       - name: Install System Dependencies
         run: |
           sudo apt update
-          sudo apt install -y git zip unzip openjdk-11-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libsqlite3-dev libgdbm-dev libssl-dev libbz2-dev libreadline-dev libmhash-dev libffi-dev aidl
+          sudo apt install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libsqlite3-dev libgdbm-dev libssl-dev libbz2-dev libreadline-dev libmhash-dev libffi-dev aidl
 
-      # 4. استدعاء وإعداد حزمة أندرويد SDK الرسمية والمثبتة مسبقاً على خوادم جيت هاب
+      # 4. استدعاء وإعداد حزمة أندرويد SDK الرسمية
       - name: Setup Android SDK Tools
         uses: android-actions/setup-android@v3
 
@@ -46,23 +46,31 @@ jobs:
           sed -i 's/^android.sdk_path =.*/#android.sdk_path =/' buildozer.spec || true
           sed -i 's/^android.ndk_path =.*/#android.ndk_path =/' buildozer.spec || true
           
+          # تفعيل متغير تخطي فحص جافا كأمان إضافي داخل بيئة البناء
+          export SKIP_JDK_VERSION_CHECK=1
+          
           # إنشاء مجلد مستودعات الأندرويد والموافقة الشاملة الفورية على كافة التراخيص
           mkdir -p ~/.android
           touch ~/.android/repositories.cfg
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
           
-          # إجبار وتثبيت حزمة أدوات البناء المستقرة إصدار 31.0.0 لمنع بيلدوزر من طلب نسخة 37
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;31.0.0" "platforms;android-31" "platform-tools" || true
+          # تحديد مسار الـ sdkmanager الجديد الذي تم تحميله إصدار 16.0 لتفعيل الرخص منه
+          if [ -f "/usr/local/lib/android/sdk/cmdline-tools/16.0/bin/sdkmanager" ]; then
+            yes | /usr/local/lib/android/sdk/cmdline-tools/16.0/bin/sdkmanager --licenses || true
+            /usr/local/lib/android/sdk/cmdline-tools/16.0/bin/sdkmanager "build-tools;31.0.0" "platforms;android-31" "platform-tools" || true
+          else
+            yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+            $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;31.0.0" "platforms;android-31" "platform-tools" || true
+          fi
           
           # عمل كوبري (Symlink) يربط الـ SDK الجاهز والنقي بالمسار الذي يتوقعه بيلدوزر تماماً
           mkdir -p ~/.buildozer/android/platform/
           rm -rf ~/.buildozer/android/platform/android-sdk
           ln -s $ANDROID_HOME ~/.buildozer/android/platform/android-sdk || true
           
-          # تنظيف أي كاش محلي معلق
+          # تنظيف أي كاش محلي معلق لبدء بناء نقي 100%
           rm -rf .buildozer/
           
-          # إطلاق عملية التجميع النهائي المباشر والآمن لملف الـ APK
+          # إطلاق عملية التجميع النهائي المباشر لملف الـ APK
           buildozer -v android debug
 
       # 7. رفع ملف الـ APK النهائي ليكون جاهزاً للتحميل مباشرة من حسابك
