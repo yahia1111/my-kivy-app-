@@ -1,7 +1,7 @@
 [app]
 title = MyApp
-package.name = myapp
-package.domain = org.test
+package.name = mycustomapp
+package.domain = com.yourname
 source.dir = .
 source.include_exts = py,png,jpg,jpeg,mp3,wav
 version = 0.1
