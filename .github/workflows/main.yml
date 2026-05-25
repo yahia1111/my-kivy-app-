@@ -36,28 +36,31 @@ jobs:
 
       - name: Inject SDK Tools and Build
         run: |
-          # 1. تجهيز وتأمين المجلدات الأساسية في بيئة بيلدوزر ومزامنتها مع الخادم السحابي
+          # 1. إجبار وتحديث ملف buildozer.spec لقراءة مسارات الـ SDK والـ NDK الحقيقية للسيرفر
+          sed -i "s|#android.sdk_path =.*|android.sdk_path = /usr/local/lib/android/sdk|g" buildozer.spec
+          sed -i "s|#android.ndk_path =.*|android.ndk_path = /usr/local/lib/android/sdk/ndk/27.3.13750724|g" buildozer.spec
+          
+          # 2. إنشاء وتأمين الروابط المباشرة داخل مجلد بيلدوزر الافتراضي كخطة بديلة
           mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
           mkdir -p ~/.buildozer/android/platform/android-sdk/platform-tools
           mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
           
-          # 2. ربط وحقن أدوات sdkmanager في كافة المسارات المتوقعة التي يبحث عنها بيلدوزر
           ln -s $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager || true
           ln -s $ANDROID_HOME/platform-tools/adb ~/.buildozer/android/platform/android-sdk/platform-tools/adb || true
           
-          # 3. قبول ومزامنة كافة التراخيص قانونياً لتفادي توقف البناء المفاجئ
+          # 3. قبول التراخيص القانونية ومزامنتها
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
           cp -r $ANDROID_HOME/licenses/* ~/.buildozer/android/platform/android-sdk/licenses/ || true
           
-          # 4. تمرير متغيرات البيئة الحيوية للنظام والـ Compiler مع حقن مسار الأدوات المباشر
+          # 4. تفعيل متغيرات البيئة للـ Compiler والـ PATH
           export ANDROID_SDK_ROOT=$ANDROID_HOME
           export ANDROID_HOME=$ANDROID_HOME
           export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
           
-          # 5. تنظيف أي مخلفات كاش قديمة من النظام بشكل مباشر وآمن
+          # 5. تنظيف أي كاش يدوي قديم
           rm -rf .buildozer/
           
-          # 6. بدء بناء ملف الـ APK النهائي مع تتبع التفاصيل خطوة بخطوة
+          # 6. بدء البناء الفعلي المباشر
           buildozer -v android debug
 
       - name: Upload APK Artifact
