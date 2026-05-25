@@ -10,20 +10,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 1. تهيئة جافا 17 المتوافقة مع أدوات أندرويد الحديثة
+      # 1. تهيئة جافا 17 المستقرة والمتوافقة
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # 2. تهيئة بيئة بايثون 3.10 المستقرة
+      # 2. تهيئة بيئة بايثون 3.10
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      # 3. تثبيت كافة الاعتماديات المساعدة لنظام التشغيل Linux
+      # 3. تثبيت كافة الاعتماديات الأساسية لنظام Linux
       - name: Install System Dependencies
         run: |
           sudo apt update
@@ -35,20 +35,22 @@ jobs:
           pip install --upgrade pip
           pip install "cython<3.0" buildozer virtualenv
 
-      # 5. تنظيف الكاش وبدء البناء الآلي النظيف تماماً عبر بيلدوزر
+      # 5. البناء التلقائي النظيف مع تفعيل القبول الإجباري الصامت لكافة شروط جوجل وأندرويد
       - name: Build with Buildozer Auto-SDK
         run: |
-          # تنظيف كامل وإزالة أي مسارات يدوية قديمة قد تسبب تضارب
+          # تنظيف إعدادات المسارات المخصصة ليعتمد بيلدوزر على نفسه
           sed -i 's/^android.sdk_path =.*/#android.sdk_path =/' buildozer.spec || true
           sed -i 's/^android.ndk_path =.*/#android.ndk_path =/' buildozer.spec || true
           
+          # مسح كاش البناء القديم تماماً لتفادي تداخل الملفات التالفة
           rm -rf .buildozer/
           rm -rf ~/.buildozer/
           
-          # إطلاق عملية التجميع؛ سيقوم بيلدوزر بتحميل أدواته المتوافقة تلقائياً وقبول التراخيص
-          buildozer -v android debug
+          # الخدعة السحرية: محاكاة كتابة "y" وضغط Enter تلقائياً بشكل لانهائي للموافقة على رخص جوجل فور ظهورها
+          # هذا السطر سيجعل بيلدوزر يتخطى شاشة (Accept? (y/N)) ويبني حزمة الـ APK مباشرة
+          yes | buildozer -v android debug
 
-      # 6. رفع ملف الـ APK النهائي لحسابك
+      # 6. رفع ملف الـ APK النهائي النظيف لحسابك للتحميل فوراً
       - name: Upload APK Artifact
         if: success()
         uses: actions/upload-artifact@v4
